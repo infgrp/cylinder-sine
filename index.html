@@ -24,7 +24,8 @@
   #labels { position:fixed; inset:0; pointer-events:none; }
   .lbl { font-size:12px; color:var(--muted); background:rgba(8,12,26,.6); border:1px solid var(--line); padding:1px 7px; border-radius:999px; white-space:nowrap; }
   .lbl b { color:var(--ink); }
-  .tick { font-family:var(--f-mono); font-size:12px; color:var(--ink); text-shadow:0 1px 6px #000; transform:translateY(14px); }
+  .tick { font-family:var(--f-mono); font-size:12px; color:var(--ink); text-shadow:0 1px 6px #000; }
+  .tick { margin-top:30px; } .tick .katex { font-size:1.35em; } .lbl .katex { font-size:1.15em; } .caption .katex { font-size:1.1em; } #math .live .katex { font-size:1.05em; }
   .lbl.sine { color:var(--sine); border-color:rgba(255,111,138,.5); font-weight:700; }
   .lbl.seam { color:var(--seam); border-color:rgba(95,212,255,.5); }
   .lbl.gold { color:var(--gold); border-color:rgba(255,207,107,.5); }
@@ -112,7 +113,7 @@
   <label class="sl"><span>평면과 축의 각 α</span><input type="range" id="sAlpha" min="35" max="75" step="1" value="45"><output id="oAlpha"></output></label>
   <label class="sl"><span>재생 속도</span><input type="range" id="sRate" min="0.25" max="2" step="0.05" value="1"><output id="oRate"></output></label>
   <div class="chips">
-    <button id="tSine" aria-pressed="false">y = sin x 늘 겹쳐 보기</button>
+    <button id="tSine" aria-pressed="false"><span class="tx">y=\sin x</span> 늘 겹쳐 보기</button>
     <button id="tProbe" aria-pressed="true">높이 재기</button>
   </div>
 </section>
@@ -120,13 +121,13 @@
 <section class="card" id="math" aria-label="수식">
   <div class="head"><p class="k">왜 사인곡선일까</p><button id="bMath">접기</button></div>
   <div class="body">
-    <div class="row">반지름 1 인 원기둥의 옆면 위의 점</div>
+    <div class="row tm">반지름 $1$ 인 원기둥의 옆면 위의 점</div>
     <div class="eq" id="eq1"></div>
-    <div class="row">축과 α 의 각을 이루는 평면 (x 축 방향으로 기운다)</div>
+    <div class="row tm">축과 $\alpha$ 의 각을 이루는 평면 ($x$ 축 방향으로 기운다)</div>
     <div class="eq" id="eq2"></div>
     <div class="row">두 식을 함께 만족하는 점, 곧 <b>잘린 자리</b>의 높이는</div>
     <div class="eq" id="eq3"></div>
-    <div class="row">높이가 가운데(z = 0)인 θ = −90° 에서 옆면을 잘라 펼친다. 반지름이 1 이므로 펼친 가로 거리 s 는 중심각과 같다.</div>
+    <div class="row tm">높이가 가운데($z=0$)인 $\theta=-90^\circ$ 에서 옆면을 잘라 펼친다. 반지름이 $1$ 이므로 펼친 가로 거리 $s$ 는 중심각과 같다.</div>
     <div class="eq" id="eq4"></div>
     <div class="eq" id="eq5"></div>
     <div class="row" id="note"></div>
@@ -168,11 +169,11 @@ function roll(s, lam) {
 /* ═══ 2. 단계 ═════════════════════════════════════════════ */
 const STEPS = [
   { t: 0, text: "반지름 1 인 원기둥" },
-  { t: 2, text: "축과 45°를 이루는 평면으로 자른다 — 잘린 면은 타원" },
+  { t: 2, text: "축과 @ANG@를 이루는 평면으로 자른다 — 잘린 면은 타원" },
   { t: 5, text: "위쪽 조각을 들어 올려 치운다" },
   { t: 8, text: "옆면을 <b>높이가 가운데인 곳</b>(파란 선)에서 세로로 자른다" },
   { t: 10.5, text: "옆면을 펼친다 — 잘린 자리(금빛 선)가 어떻게 될까?" },
-  { t: 16, text: "펼친 가장자리는 <b>z = sin s</b> — 사인곡선 한 주기" },
+  { t: 16, text: "펼친 가장자리는 <b>@SINE@</b> — 사인곡선 한 주기" },
 ];
 const smooth = (x) => x * x * (3 - 2 * x);
 const ph = (t, a, b) => smooth(Math.min(1, Math.max(0, (t - a) / (b - a))));
@@ -235,7 +236,9 @@ function place(m, a, b) {
   m.scale.set(1, L, 1);
   m.quaternion.setFromUnitVectors(UP, d.normalize());
 }
-const mkLabel = (html, cls) => { const d = document.createElement("div"); d.className = cls || "lbl"; d.innerHTML = html; return new THREE.CSS2DObject(d); };
+/* 글 속의 $...$ 를 KaTeX 로 바꾼다 */
+const md = (str) => str.replace(/\$([^$]+)\$/g, (_, t) => katex.renderToString(t, { throwOnError: false }));
+const mkLabel = (html, cls) => { const d = document.createElement("div"); d.className = cls || "lbl"; d.innerHTML = md(html); return new THREE.CSS2DObject(d); };
 
 /* ═══ 4. 옆면: 아주 얇은 리퀴드 글래스 막 ════════════════════
    격자는 텍스처 대신 셰이더에서 화면 픽셀 단위로 그린다 → 4K 로 그려도 선이 번지지 않는다.
@@ -355,13 +358,13 @@ const planeMat = new THREE.ShaderMaterial({
 const cutPlane = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 4.8), planeMat);
 cutPlane.renderOrder = 3;
 scene.add(cutPlane);
-const planeLabel = mkLabel("평면 · 축과 <b>45°</b>");
+const planeLabel = mkLabel("평면 · 축과 $45^\\circ$");
 cutPlane.add(planeLabel);
 function orientPlane() {
   const L = Math.hypot(1, P.k), e1 = new V3(1 / L, 0, P.k / L), e2 = new V3(0, 1, 0), n = new V3(-P.k / L, 0, 1 / L);
   cutPlane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(e1, e2, n));
   planeLabel.position.set(-2.2, 2.2, 0);
-  planeLabel.element.innerHTML = `평면 · 축과 <b>${Math.round(P.alpha * 180 / Math.PI)}°</b>`;
+  planeLabel.element.innerHTML = md(`평면 · 축과 $${Math.round(P.alpha * 180 / Math.PI)}^\\circ$`);
 }
 
 /* 잘린 자리(금빛 곡선)와 솔기(파란 선) */
@@ -407,21 +410,21 @@ const sineMat = new THREE.LineDashedMaterial({ color: 0xff6f8a, dashSize: 0.1, g
   const ax = new THREE.BufferGeometry().setFromPoints([new V3(-0.3, GY, 0), new V3(SMAX + 0.5, GY, 0), new V3(0, GY, -H), new V3(0, GY, 1.6)]);
   graph.add(new THREE.LineSegments(ax, axMat));
   const tk = [];
-  [[1, "π/2"], [2, "π"], [3, "3π/2"], [4, "2π"]].forEach(([i, name]) => {
+  [[1, "$\\dfrac{\\pi}{2}$"], [2, "$\\pi$"], [3, "$\\dfrac{3\\pi}{2}$"], [4, "$2\\pi$"]].forEach(([i, name]) => {
     const x = (i * Math.PI) / 2;
     tk.push(new V3(x, GY, -0.07), new V3(x, GY, 0.07));
     const l = mkLabel(name, "tick"); l.position.set(x, GY, 0); graph.add(l);
   });
-  for (const z of [-1, 1]) { tk.push(new V3(-0.07, GY, z), new V3(0.07, GY, z)); const l = mkLabel(String(z), "tick"); l.element.style.transform = "translate(-16px,0)"; l.position.set(-0.12, GY, z); graph.add(l); }
+  for (const z of [-1, 1]) { tk.push(new V3(-0.07, GY, z), new V3(0.07, GY, z)); const l = mkLabel("$" + z + "$", "tick"); l.element.style.margin = "0 0 0 -34px"; l.position.set(-0.12, GY, z); graph.add(l); }
   graph.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(tk), axMat));
-  const sx = mkLabel("s", "tick"); sx.position.set(SMAX + 0.6, GY, 0); sx.element.style.transform = "translate(0,0)"; graph.add(sx);
-  const sz = mkLabel("z", "tick"); sz.position.set(0, GY, 1.75); sz.element.style.transform = "translate(0,0)"; graph.add(sz);
+  const sx = mkLabel("$s$", "tick"); sx.position.set(SMAX + 0.6, GY, 0); sx.element.style.margin = "0"; graph.add(sx);
+  const sz = mkLabel("$z$", "tick"); sz.position.set(0, GY, 1.75); sz.element.style.margin = "0"; graph.add(sz);
   const sp = [];
   for (let i = 0; i <= 200; i++) { const x = (i / 200) * SMAX; sp.push(new V3(x, GY - 0.01, Math.sin(x))); }
   const sl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(sp), sineMat);
   sl.computeLineDistances();
   graph.add(sl);
-  const lab = mkLabel("y = sin x", "lbl sine"); lab.position.set(Math.PI / 2 + 0.2, GY, 1.3); graph.add(lab);
+  const lab = mkLabel("$y=\\sin x$", "lbl sine"); lab.position.set(1.5 * Math.PI + 0.9, GY, -1.25); graph.add(lab);
 }
 
 /* 높이 재기: 펼친 뒤 금빛 곡선 위를 달리는 점 */
@@ -430,7 +433,7 @@ scene.add(probe);
 const probeDot = new THREE.Mesh(new THREE.SphereGeometry(0.075, 18, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
 const probeBar = rodMesh(0.007, 0xffe39a); scene.remove(probeBar); probe.add(probeBar);
 probe.add(probeDot);
-const probeLabel = mkLabel("", "lbl gold"); probeLabel.element.style.transform = "translate(16px,-18px)";
+const probeLabel = mkLabel("", "lbl gold"); probeLabel.element.style.margin = "-34px 0 0 0";
 probeDot.add(probeLabel);
 
 /* ═══ 6. 수식 카드 ═════════════════════════════════════════ */
@@ -444,8 +447,8 @@ function renderMath() {
   tex("eq5", ad === 45 ? String.raw`\alpha=45^\circ\ \Rightarrow\ \cot\alpha=1\ \Rightarrow\ \boxed{z=\sin s}`
                        : String.raw`\alpha=${ad}^\circ\ \Rightarrow\ z=${P.k.toFixed(3)}\,\sin s`);
   $("note").innerHTML = ad === 45
-    ? "잘린 면은 장축 √2, 단축 1 인 타원이다. 펼친 옆면의 가로 길이는 원기둥의 둘레 2π — 사인곡선 정확히 한 주기."
-    : `α 를 바꾸면 진폭이 cot α = <b>${P.k.toFixed(3)}</b> 로 바뀐다. 분홍 점선 y = sin x 와 견주어 보자. 그래도 주기는 늘 2π (원기둥의 둘레)다.`;
+    ? md("잘린 면은 장축 $\\sqrt2$, 단축 $1$ 인 타원이다. 펼친 옆면의 가로 길이는 원기둥의 둘레 $2\\pi$ — 사인곡선 정확히 한 주기.")
+    : md(`$\\alpha$ 를 바꾸면 진폭이 $\\cot\\alpha=${P.k.toFixed(3)}$ 로 바뀐다. 분홍 점선 $y=\\sin x$ 와 견주어 보자. 그래도 주기는 늘 $2\\pi$ (원기둥의 둘레)다.`);
 }
 
 /* ═══ 7. 조작 ═════════════════════════════════════════════ */
@@ -479,6 +482,8 @@ function toggle(id, on, fn) {
   set(on);
   b.addEventListener("click", () => set(b.getAttribute("aria-pressed") !== "true"));
 }
+document.querySelectorAll(".tm").forEach((e) => { e.innerHTML = md(e.innerHTML); });
+document.querySelectorAll(".tx").forEach((e) => katex.render(e.textContent, e, { throwOnError: false }));
 toggle("tSine", QS.has("sine"), (v) => { alwaysSine = v; });
 toggle("tProbe", true, (v) => { showProbe = v; });
 $("bMath").addEventListener("click", () => { const m = $("math"); m.classList.toggle("mini"); $("bMath").textContent = m.classList.contains("mini") ? "펴기" : "접기"; });
@@ -558,7 +563,6 @@ function apply(t, dt) {
     const s = probeClock * SMAX, z = zc(s);
     probeDot.position.set(s, GY - 0.03, z);
     place(probeBar, new V3(s, GY - 0.03, 0), new V3(s, GY - 0.03, z));
-    probeLabel.element.textContent = `s = ${(s / Math.PI).toFixed(2)}π,  z = ${z.toFixed(2)}`;
     P.probe = { s, z };
   } else P.probe = null;
   // 카메라
@@ -573,18 +577,21 @@ function apply(t, dt) {
   const ci = STEPS.reduce((a, s, i) => (t >= s.t - 0.01 ? i : a), 0);
   if (ci !== capIdx) {
     capIdx = ci;
-    $("caption").innerHTML = `<span class="n">${ci + 1}/${STEPS.length}</span>${STEPS[ci].text.replace("45°", Math.round(P.alpha * 180 / Math.PI) + "°").replace("z = sin s", Math.round(P.alpha * 180 / Math.PI) === 45 ? "z = sin s" : "z = " + P.k.toFixed(2) + " sin s")}`;
+    const ad = Math.round(P.alpha * 180 / Math.PI);
+    $("caption").innerHTML = `<span class="n">${ci + 1}/${STEPS.length}</span>` + md(STEPS[ci].text
+      .replace("@ANG@", `$${ad}^\\circ$`).replace("@SINE@", ad === 45 ? "$z=\\sin s$" : `$z=${P.k.toFixed(2)}\\sin s$`));
     $("steps").querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === ci)));
   }
   return lam;
 }
 function updateLive(lam) {
-  const h = [`진행 ${P.t.toFixed(1)} / ${TEND} 초 · 펼친 정도 λ = ${lam.toFixed(2)}`];
+  const h = [md(`진행 ${P.t.toFixed(1)} / ${TEND} 초 · 펼친 정도 $\\lambda=${lam.toFixed(2)}$`)];
   if (P.probe) {
     const { s, z } = P.probe, want = P.k * Math.sin(s);
-    h.push(`s = ${(s / Math.PI).toFixed(2)}π (${(s * 180 / Math.PI).toFixed(0)}°)`);
-    h.push(`잰 높이 z = <span class="ok">${z.toFixed(3)}</span>`);
-    h.push(`<span class="s">${Math.abs(P.k - 1) < 1e-9 ? "sin s" : P.k.toFixed(3) + "·sin s"} = ${want.toFixed(3)}</span> ✓`);
+    h.push(md(`$s=${(s / Math.PI).toFixed(2)}\\pi\\ (${(s * 180 / Math.PI).toFixed(0)}^\\circ)$`));
+    h.push(md(`잰 높이 $z=$ <span class="ok">${z.toFixed(3)}</span>`));
+    h.push(`<span class="s">${md(Math.abs(P.k - 1) < 1e-9 ? "$\\sin s$" : `$${P.k.toFixed(3)}\\sin s$`)} = ${want.toFixed(3)}</span> ✓`);
+    probeLabel.element.innerHTML = md(`$s=${(s / Math.PI).toFixed(2)}\\pi,\\ z=${z.toFixed(2)}$`);
   } else h.push(lam < 0.999 ? "펼친 뒤에 금빛 곡선의 높이를 재어 본다" : "‘높이 재기’를 켜면 곡선 위를 달리는 점이 나온다");
   $("live").innerHTML = h.join("<br>");
 }
